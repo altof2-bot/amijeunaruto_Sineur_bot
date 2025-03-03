@@ -459,13 +459,18 @@ async def process_admin_manage(callback_query: types.CallbackQuery, state: FSMCo
 
     await callback_query.answer()
 
-@dp.message(lambda message: ManageAdmins.waiting_for_admin_id and message.content_type == types.ContentType.TEXT)
+@dp.message(ManageAdmins.waiting_for_admin_id)
 async def manage_admins_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     action = data.get("action")
 
     try:
-        admin_id = int(message.text)
+        # Vérification que le texte contient uniquement des chiffres
+        if not message.text.strip().isdigit():
+            await message.reply("ID invalide. Veuillez entrer un nombre entier positif.")
+            return
+            
+        admin_id = int(message.text.strip())
 
         if action == "add":
             admin_ids.add(admin_id)
@@ -477,7 +482,7 @@ async def manage_admins_handler(message: types.Message, state: FSMContext):
             else:
                 await message.reply(f"Utilisateur {admin_id} n'est pas admin.")
     except ValueError:
-        await message.reply("ID invalide. Veuillez entrer un nombre entier.")
+        await message.reply("ID invalide. Veuillez entrer un nombre entier positif.")
     except Exception as e:
         await message.reply(f"Erreur: {e}")
 
@@ -486,7 +491,12 @@ async def manage_admins_handler(message: types.Message, state: FSMContext):
 @dp.message(BanUser.waiting_for_ban_id)
 async def ban_user_handler(message: types.Message, state: FSMContext):
     try:
-        user_id = int(message.text)
+        # Vérification que le texte contient uniquement des chiffres
+        if not message.text.strip().isdigit():
+            await message.reply("ID invalide. Veuillez entrer un nombre entier positif.")
+            return
+            
+        user_id = int(message.text.strip())
         banned_users.add(user_id)
 
         if user_id in subscribers:
@@ -494,7 +504,7 @@ async def ban_user_handler(message: types.Message, state: FSMContext):
 
         await message.reply(f"Utilisateur {user_id} banni.")
     except ValueError:
-        await message.reply("ID invalide. Veuillez entrer un nombre entier.")
+        await message.reply("ID invalide. Veuillez entrer un nombre entier positif.")
     except Exception as e:
         await message.reply(f"Erreur: {e}")
 
@@ -503,7 +513,12 @@ async def ban_user_handler(message: types.Message, state: FSMContext):
 @dp.message(UnbanUser.waiting_for_unban_id)
 async def unban_user_handler(message: types.Message, state: FSMContext):
     try:
-        user_id = int(message.text)
+        # Vérification que le texte contient uniquement des chiffres
+        if not message.text.strip().isdigit():
+            await message.reply("ID invalide. Veuillez entrer un nombre entier positif.")
+            return
+            
+        user_id = int(message.text.strip())
 
         if user_id in banned_users:
             banned_users.remove(user_id)
@@ -511,7 +526,7 @@ async def unban_user_handler(message: types.Message, state: FSMContext):
         else:
             await message.reply("Cet utilisateur n'est pas banni.")
     except ValueError:
-        await message.reply("ID invalide. Veuillez entrer un nombre entier.")
+        await message.reply("ID invalide. Veuillez entrer un nombre entier positif.")
     except Exception as e:
         await message.reply(f"Erreur: {e}")
 
