@@ -517,6 +517,156 @@ async def unban_user_handler(message: types.Message, state: FSMContext):
 
     await state.clear()
 
+
+# Commandes admin traditionnelles
+@dp.message(lambda message: message.text and message.text.startswith("/broadcast"))
+async def cmd_broadcast(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
+        return
+    
+    # Extraire le texte de l'annonce après la commande
+    announcement_text = message.text.replace("/broadcast", "", 1).strip()
+    
+    if not announcement_text:
+        await message.reply("Usage: /broadcast [votre message]")
+        return
+    
+    # Procéder à l'envoi
+    sent = 0
+    failed = 0
+    
+    await message.reply("Envoi de l'annonce en cours...")
+    
+    # Assurons-nous que subscribers existe
+    global subscribers
+    if not hasattr(globals(), 'subscribers') or subscribers is None:
+        subscribers = set()
+    
+    # Si subscribers est vide, on doit quand même tenter d'envoyer aux admins
+    if not subscribers:
+        for admin_id in admin_ids:
+            try:
+                await bot.send_message(admin_id, f"📢 ANNONCE :\n\n{announcement_text}")
+                sent += 1
+            except Exception as e:
+                print(f"Erreur lors de l'envoi à l'admin {admin_id} : {e}")
+                failed += 1
+    else:
+        for user_id in list(subscribers):
+            if user_id not in banned_users:
+                try:
+                    await bot.send_message(user_id, f"📢 ANNONCE :\n\n{announcement_text}")
+                    sent += 1
+                except Exception as e:
+                    print(f"Erreur lors de l'envoi à {user_id} : {e}")
+                    failed += 1
+    
+    await message.reply(f"✅ Annonce envoyée à {sent} utilisateurs.\n❌ {failed} échecs.")
+
+@dp.message(lambda message: message.text and message.text.startswith("/ban"))
+async def cmd_ban(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
+        return
+    
+    try:
+        user_id = int(message.text.replace("/ban", "", 1).strip())
+        banned_users.add(user_id)
+        
+        if user_id in subscribers:
+            subscribers.remove(user_id)
+            
+        await message.reply(f"Utilisateur {user_id} banni avec succès.")
+    except ValueError:
+        await message.reply("Usage: /ban [user_id]")
+    except Exception as e:
+        await message.reply(f"Erreur: {e}")
+
+@dp.message(lambda message: message.text and message.text.startswith("/unban"))
+async def cmd_unban(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
+        return
+    
+    try:
+        user_id = int(message.text.replace("/unban", "", 1).strip())
+        
+        if user_id in banned_users:
+            banned_users.remove(user_id)
+            await message.reply(f"Utilisateur {user_id} débanni avec succès.")
+        else:
+            await message.reply("Cet utilisateur n'est pas banni.")
+    except ValueError:
+        await message.reply("Usage: /unban [user_id]")
+    except Exception as e:
+        await message.reply(f"Erreur: {e}")
+
+@dp.message(lambda message: message.text and message.text.startswith("/stats"))
+async def cmd_stats(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
+        return
+    
+    stats = (
+        f"📊 Statistiques du bot:\n\n"
+        f"👥 Nombre d'utilisateurs: {len(subscribers)}\n"
+        f"👮‍♂️ Nombre d'admins: {len(admin_ids)}\n"
+        f"🚫 Nombre de bannis: {len(banned_users)}"
+    )
+    await message.reply(stats)
+
+@dp.message(lambda message: message.text and message.text.startswith("/addadmin"))
+async def cmd_add_admin(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
+        return
+    
+    try:
+        user_id = int(message.text.replace("/addadmin", "", 1).strip())
+        admin_ids.add(user_id)
+        await message.reply(f"Utilisateur {user_id} ajouté comme admin.")
+    except ValueError:
+        await message.reply("Usage: /addadmin [user_id]")
+    except Exception as e:
+        await message.reply(f"Erreur: {e}")
+
+@dp.message(lambda message: message.text and message.text.startswith("/removeadmin"))
+async def cmd_remove_admin(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
+        return
+    
+    try:
+        user_id = int(message.text.replace("/removeadmin", "", 1).strip())
+        
+        if user_id in admin_ids:
+            admin_ids.remove(user_id)
+            await message.reply(f"Utilisateur {user_id} supprimé des admins.")
+        else:
+            await message.reply("Cet utilisateur n'est pas admin.")
+    except ValueError:
+        await message.reply("Usage: /removeadmin [user_id]")
+    except Exception as e:
+        await message.reply(f"Erreur: {e}")
+
+@dp.message(lambda message: message.text and message.text.startswith("/clean"))
+async def cmd_clean(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
+        return
+    
+    count = 0
+    for f in os.listdir('.'):
+        if f.endswith(".mp4") or f.endswith(".m4a"):
+            try:
+                os.remove(f)
+                count += 1
+            except Exception as e:
+                await message.reply(f"Erreur lors de la suppression de {f}: {e}")
+    
+    await message.reply(f"✅ {count} fichiers supprimés.")
+
 @dp.message(lambda message: EditStartMessage.waiting_for_new_message and message.content_type == types.ContentType.TEXT)
 async def edit_start_message_handler(message: types.Message, state: FSMContext):
     global welcome_message
