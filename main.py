@@ -212,6 +212,31 @@ async def process_download_video(callback_query: types.CallbackQuery):
     await callback_query.answer()
     await bot.send_message(callback_query.from_user.id, "Envoie-moi le lien YouTube à télécharger.")
 
+@dp.callback_query(lambda c: c.data == "admin_panel")
+async def process_admin_panel(callback_query: types.CallbackQuery):
+    if not is_admin(callback_query.from_user.id):
+        await callback_query.answer(text="Accès refusé. Vous n'êtes pas administrateur.")
+        return
+    
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text="Envoyer une annonce", callback_data="admin_announce")],
+            [types.InlineKeyboardButton(text="Gérer les admins", callback_data="admin_manage_admins")],
+            [types.InlineKeyboardButton(text="Bannir utilisateur", callback_data="admin_ban_user")],
+            [types.InlineKeyboardButton(text="Débannir utilisateur", callback_data="admin_unban_user")],
+            [types.InlineKeyboardButton(text="Voir statistiques", callback_data="admin_stats")],
+            [types.InlineKeyboardButton(text="Gérer formats", callback_data="admin_manage_formats")],
+            [types.InlineKeyboardButton(text="Gérer liens", callback_data="admin_manage_links")],
+            [types.InlineKeyboardButton(text="Voir stockage", callback_data="admin_storage")],
+            [types.InlineKeyboardButton(text="Vider stockage", callback_data="admin_clear_storage")],
+            [types.InlineKeyboardButton(text="Modifier message démarrage", callback_data="admin_edit_start")],
+            [types.InlineKeyboardButton(text="Gérer abonnement forcé", callback_data="admin_manage_sub")],
+            [types.InlineKeyboardButton(text="Gérer images Telegraph", callback_data="admin_manage_telegraph")]
+        ]
+    )
+    await bot.send_message(callback_query.from_user.id, "Panneau Admin :", reply_markup=keyboard)
+    await callback_query.answer()
+
 @dp.message(lambda message: message.text and (message.text.startswith("http") or "youtu" in message.text))
 async def handle_video_link(message: types.Message):
     msg = await message.reply("Téléchargement en cours... Cela peut prendre quelques instants.")
@@ -295,11 +320,27 @@ class ManageSubChannels(StatesGroup):
 class TelegraphImage(StatesGroup):
     waiting_for_image = State()
 
+class ManageFormats(StatesGroup):
+    waiting_for_format = State()
+
+class ManageLinks(StatesGroup):
+    waiting_for_link = State()
+    waiting_for_name = State()
+
 # Variables globales pour les utilisateurs
 subscribers = set()
 banned_users = set()
 admin_ids = set(ADMIN_IDS)
 welcome_message = "Bienvenue sur notre bot de téléchargement de vidéos YouTube !"
+download_formats = {
+    "best": "Meilleure qualité disponible",
+    "480p": "Qualité moyenne (480p)",
+    "audio": "Audio seulement"
+}
+important_links = {
+    "Chaîne principale": "https://t.me/sineur_x_bot",
+    "Support": "https://t.me/sineur_x_bot"
+}
 
 @dp.callback_query(lambda c: c.data and c.data.startswith("admin_"))
 async def process_admin_callbacks(callback_query: types.CallbackQuery):
@@ -339,10 +380,23 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
         await bot.send_message(callback_query.from_user.id, stats)
     
     elif data == "admin_manage_formats":
-        await bot.send_message(callback_query.from_user.id, "Fonction 'Gérer formats' à implémenter.")
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(
+            types.InlineKeyboardButton(text="Ajouter un format", callback_data="format_add"),
+            types.InlineKeyboardButton(text="Supprimer un format", callback_data="format_remove"),
+            types.InlineKeyboardButton(text="Retour", callback_data="back_to_admin")
+        )
+        await bot.send_message(callback_query.from_user.id, "Gérer les formats de téléchargement :", reply_markup=keyboard)
     
     elif data == "admin_manage_links":
-        await bot.send_message(callback_query.from_user.id, "Fonction 'Gérer liens' à implémenter.")
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(
+            types.InlineKeyboardButton(text="Ajouter un lien", callback_data="link_add"),
+            types.InlineKeyboardButton(text="Supprimer un lien", callback_data="link_remove"),
+            types.InlineKeyboardButton(text="Liste des liens", callback_data="link_list"),
+            types.InlineKeyboardButton(text="Retour", callback_data="back_to_admin")
+        )
+        await bot.send_message(callback_query.from_user.id, "Gérer les liens importants :", reply_markup=keyboard)
     
     elif data == "admin_storage":
         files = os.listdir('.')
@@ -379,11 +433,14 @@ async def process_admin_manage(callback_query: types.CallbackQuery, state: FSMCo
     action = callback_query.data  # "admin_add" ou "admin_remove"
     await ManageAdmins.waiting_for_admin_id.set()
     
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
+    
     if action == "admin_add":
-        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à ajouter comme admin.")
+        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à ajouter comme admin.", reply_markup=keyboard)
         await state.update_data(action="add")
     else:
-        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à supprimer des admins.")
+        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à supprimer des admins.", reply_markup=keyboard)
         await state.update_data(action="remove")
     
     await callback_query.answer()
@@ -458,11 +515,14 @@ async def process_sub_manage(callback_query: types.CallbackQuery, state: FSMCont
     action = callback_query.data  # "sub_add" ou "sub_remove"
     await ManageSubChannels.waiting_for_channel_name.set()
     
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
+    
     if action == "sub_add":
-        await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (sans @) à ajouter.")
+        await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (sans @) à ajouter.", reply_markup=keyboard)
         await state.update_data(action="add")
     else:
-        await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (sans @) à supprimer.")
+        await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (sans @) à supprimer.", reply_markup=keyboard)
         await state.update_data(action="remove")
     
     await callback_query.answer()
@@ -515,6 +575,187 @@ async def telegraph_image_handler(message: types.Message, state: FSMContext):
         await message.reply(f"Erreur : {e}")
     
     await state.clear()
+
+@dp.callback_query(lambda c: c.data in ["format_add", "format_remove"])
+async def process_format_manage(callback_query: types.CallbackQuery, state: FSMContext):
+    action = callback_query.data
+    await ManageFormats.waiting_for_format.set()
+    
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
+    
+    if action == "format_add":
+        await bot.send_message(
+            callback_query.from_user.id, 
+            "Envoyez le format à ajouter au format 'code:description'.\nExemple: '720p:Qualité HD (720p)'", 
+            reply_markup=keyboard
+        )
+        await state.update_data(action="add")
+    else:
+        format_list = "\n".join([f"{code}: {desc}" for code, desc in download_formats.items()])
+        await bot.send_message(
+            callback_query.from_user.id, 
+            f"Formats disponibles:\n{format_list}\n\nEnvoyez le code du format à supprimer:", 
+            reply_markup=keyboard
+        )
+        await state.update_data(action="remove")
+    
+    await callback_query.answer()
+
+@dp.message(lambda message: ManageFormats.waiting_for_format and message.content_type == types.ContentType.TEXT)
+async def manage_formats_handler(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    action = data.get("action")
+    
+    if action == "add":
+        try:
+            code, description = message.text.split(":", 1)
+            code = code.strip()
+            description = description.strip()
+            
+            if code in download_formats:
+                await message.reply(f"Le format '{code}' existe déjà. Utilisez un autre code.")
+            else:
+                download_formats[code] = description
+                await message.reply(f"Format '{code}' ajouté avec succès.")
+        except ValueError:
+            await message.reply("Format invalide. Utilisez le format 'code:description'.")
+    elif action == "remove":
+        format_code = message.text.strip()
+        
+        if format_code in download_formats:
+            del download_formats[format_code]
+            await message.reply(f"Format '{format_code}' supprimé avec succès.")
+        else:
+            await message.reply(f"Format '{format_code}' introuvable.")
+    
+    await state.clear()
+    
+    # Afficher le menu de gestion des formats
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        types.InlineKeyboardButton(text="Ajouter un format", callback_data="format_add"),
+        types.InlineKeyboardButton(text="Supprimer un format", callback_data="format_remove"),
+        types.InlineKeyboardButton(text="Retour", callback_data="back_to_admin")
+    )
+    await message.answer("Gérer les formats de téléchargement :", reply_markup=keyboard)
+
+@dp.callback_query(lambda c: c.data in ["link_add", "link_remove", "link_list"])
+async def process_link_manage(callback_query: types.CallbackQuery, state: FSMContext):
+    action = callback_query.data
+    
+    if action == "link_list":
+        link_list = "\n".join([f"• {name}: {url}" for name, url in important_links.items()])
+        if link_list:
+            await bot.send_message(callback_query.from_user.id, f"Liens importants:\n{link_list}")
+        else:
+            await bot.send_message(callback_query.from_user.id, "Aucun lien enregistré.")
+            
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        keyboard.add(types.InlineKeyboardButton(text="Retour", callback_data="admin_manage_links"))
+        await bot.send_message(callback_query.from_user.id, "Que souhaitez-vous faire ?", reply_markup=keyboard)
+    else:
+        await ManageLinks.waiting_for_name.set() if action == "link_add" else await ManageLinks.waiting_for_link.set()
+        
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
+        
+        if action == "link_add":
+            await bot.send_message(
+                callback_query.from_user.id, 
+                "Envoyez le nom du lien à ajouter:", 
+                reply_markup=keyboard
+            )
+            await state.update_data(action="add")
+        else:
+            link_list = "\n".join([f"• {name}" for name in important_links.keys()])
+            await bot.send_message(
+                callback_query.from_user.id, 
+                f"Liens disponibles:\n{link_list}\n\nEnvoyez le nom du lien à supprimer:", 
+                reply_markup=keyboard
+            )
+            await state.update_data(action="remove")
+    
+    await callback_query.answer()
+
+@dp.message(lambda message: ManageLinks.waiting_for_name and message.content_type == types.ContentType.TEXT)
+async def manage_links_name_handler(message: types.Message, state: FSMContext):
+    link_name = message.text.strip()
+    
+    if link_name in important_links:
+        await message.reply(f"Le lien '{link_name}' existe déjà. Utilisez un autre nom.")
+        return
+    
+    await state.update_data(link_name=link_name)
+    await ManageLinks.waiting_for_link.set()
+    
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
+    
+    await message.reply("Maintenant, envoyez l'URL du lien:", reply_markup=keyboard)
+
+@dp.message(lambda message: ManageLinks.waiting_for_link and message.content_type == types.ContentType.TEXT)
+async def manage_links_handler(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    action = data.get("action")
+    
+    if action == "add":
+        link_name = data.get("link_name")
+        link_url = message.text.strip()
+        
+        if not link_url.startswith(("http://", "https://", "t.me/")):
+            await message.reply("URL invalide. Assurez-vous que l'URL commence par http://, https:// ou t.me/")
+            return
+        
+        important_links[link_name] = link_url
+        await message.reply(f"Lien '{link_name}' ajouté avec succès.")
+    else:
+        link_name = message.text.strip()
+        
+        if link_name in important_links:
+            del important_links[link_name]
+            await message.reply(f"Lien '{link_name}' supprimé avec succès.")
+        else:
+            await message.reply(f"Lien '{link_name}' introuvable.")
+    
+    await state.clear()
+    
+    # Afficher le menu de gestion des liens
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        types.InlineKeyboardButton(text="Ajouter un lien", callback_data="link_add"),
+        types.InlineKeyboardButton(text="Supprimer un lien", callback_data="link_remove"),
+        types.InlineKeyboardButton(text="Liste des liens", callback_data="link_list"),
+        types.InlineKeyboardButton(text="Retour", callback_data="back_to_admin")
+    )
+    await message.answer("Gérer les liens importants :", reply_markup=keyboard)
+
+@dp.callback_query(lambda c: c.data == "back_to_admin")
+async def back_to_admin_panel(callback_query: types.CallbackQuery):
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text="Envoyer une annonce", callback_data="admin_announce")],
+            [types.InlineKeyboardButton(text="Gérer les admins", callback_data="admin_manage_admins")],
+            [types.InlineKeyboardButton(text="Bannir utilisateur", callback_data="admin_ban_user")],
+            [types.InlineKeyboardButton(text="Débannir utilisateur", callback_data="admin_unban_user")],
+            [types.InlineKeyboardButton(text="Voir statistiques", callback_data="admin_stats")],
+            [types.InlineKeyboardButton(text="Gérer formats", callback_data="admin_manage_formats")],
+            [types.InlineKeyboardButton(text="Gérer liens", callback_data="admin_manage_links")],
+            [types.InlineKeyboardButton(text="Voir stockage", callback_data="admin_storage")],
+            [types.InlineKeyboardButton(text="Vider stockage", callback_data="admin_clear_storage")],
+            [types.InlineKeyboardButton(text="Modifier message démarrage", callback_data="admin_edit_start")],
+            [types.InlineKeyboardButton(text="Gérer abonnement forcé", callback_data="admin_manage_sub")],
+            [types.InlineKeyboardButton(text="Gérer images Telegraph", callback_data="admin_manage_telegraph")]
+        ]
+    )
+    await bot.send_message(callback_query.from_user.id, "Panneau Admin :", reply_markup=keyboard)
+    await callback_query.answer()
+
+@dp.callback_query(lambda c: c.data == "cancel_admin_action")
+async def cancel_admin_action(callback_query: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await bot.send_message(callback_query.from_user.id, "Action annulée.")
+    await back_to_admin_panel(callback_query)
 
 @dp.message(lambda message: Announcement.waiting_for_text and message.content_type == types.ContentType.TEXT)
 async def announcement_handler(message: types.Message, state: FSMContext):
