@@ -544,9 +544,11 @@ async def cmd_broadcast(message: types.Message, state: FSMContext):
     if message.text.startswith("/broadcast"):
         announcement_text = message.text.replace("/broadcast", "", 1).strip()
         cmd_name = "/broadcast"
+        prefix = "📣 BROADCAST :\n\n"
     else:
         announcement_text = message.text.replace("/diffuse", "", 1).strip()
         cmd_name = "/diffuse"
+        prefix = "📢 DIFFUSION :\n\n"
     
     if not announcement_text:
         await message.reply(f"Usage: {cmd_name} [votre message]")
@@ -567,7 +569,7 @@ async def cmd_broadcast(message: types.Message, state: FSMContext):
     if not subscribers:
         for admin_id in admin_ids:
             try:
-                await bot.send_message(admin_id, f"📢 ANNONCE :\n\n{announcement_text}")
+                await bot.send_message(admin_id, f"{prefix}{announcement_text}")
                 sent += 1
             except Exception as e:
                 print(f"Erreur lors de l'envoi à l'admin {admin_id} : {e}")
@@ -576,7 +578,7 @@ async def cmd_broadcast(message: types.Message, state: FSMContext):
         for user_id in list(subscribers):
             if user_id not in banned_users:
                 try:
-                    await bot.send_message(user_id, f"📢 ANNONCE :\n\n{announcement_text}")
+                    await bot.send_message(user_id, f"{prefix}{announcement_text}")
                     sent += 1
                 except Exception as e:
                     print(f"Erreur lors de l'envoi à {user_id} : {e}")
