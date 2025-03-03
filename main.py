@@ -181,8 +181,13 @@ def is_admin(user_id: int) -> bool:
 # -------------------------------
 @dp.message(lambda message: message.text and message.text.startswith("/start"))
 async def cmd_start(message: types.Message):
+    # Ajouter l'utilisateur à la liste des abonnés s'il n'est pas banni
+    user_id = message.from_user.id
+    if user_id not in banned_users:
+        subscribers.add(user_id)
+    
     # Vérifie l'abonnement forcé
-    if not await check_subscription(message.from_user.id):
+    if not await check_subscription(user_id):
         await message.reply("Pour utiliser le bot, vous devez être abonné à notre chaîne.")
         return
     # Création du clavier inline
@@ -343,7 +348,7 @@ important_links = {
 }
 
 @dp.callback_query(lambda c: c.data and c.data.startswith("admin_"))
-async def process_admin_callbacks(callback_query: types.CallbackQuery):
+async def process_admin_callbacks(callback_query: types.CallbackQuery, state: FSMContext):
     if not is_admin(callback_query.from_user.id):
         await callback_query.answer(text="Accès refusé.")
         return
@@ -469,7 +474,7 @@ async def manage_admins_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
-@dp.message(lambda message: BanUser.waiting_for_ban_id and message.content_type == types.ContentType.TEXT)
+@dp.message(BanUser.waiting_for_ban_id)
 async def ban_user_handler(message: types.Message, state: FSMContext):
     try:
         user_id = int(message.text)
@@ -486,7 +491,7 @@ async def ban_user_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
-@dp.message(lambda message: UnbanUser.waiting_for_unban_id and message.content_type == types.ContentType.TEXT)
+@dp.message(UnbanUser.waiting_for_unban_id)
 async def unban_user_handler(message: types.Message, state: FSMContext):
     try:
         user_id = int(message.text)
@@ -785,7 +790,7 @@ async def cancel_admin_action(callback_query: types.CallbackQuery, state: FSMCon
     await bot.send_message(callback_query.from_user.id, "Action annulée.")
     await back_to_admin_panel(callback_query)
 
-@dp.message(lambda message: Announcement.waiting_for_text and message.content_type == types.ContentType.TEXT)
+@dp.message(Announcement.waiting_for_text)
 async def announcement_handler(message: types.Message, state: FSMContext):
     announcement_text = message.text
     sent = 0
@@ -793,13 +798,24 @@ async def announcement_handler(message: types.Message, state: FSMContext):
     
     await message.reply("Envoi de l'annonce en cours...")
     
-    for user_id in subscribers.copy():
-        try:
-            await bot.send_message(user_id, f"📢 ANNONCE :\n\n{announcement_text}")
-            sent += 1
-        except Exception as e:
-            print(f"Erreur lors de l'envoi à {user_id} : {e}")
-            failed += 1
+    # Si subscribers est vide, on doit quand même tenter d'envoyer aux admins
+    if not subscribers:
+        for admin_id in admin_ids:
+            try:
+                await bot.send_message(admin_id, f"📢 ANNONCE :\n\n{announcement_text}")
+                sent += 1
+            except Exception as e:
+                print(f"Erreur lors de l'envoi à l'admin {admin_id} : {e}")
+                failed += 1
+    else:
+        for user_id in subscribers.copy():
+            if user_id not in banned_users:  # Ne pas envoyer aux utilisateurs bannis
+                try:
+                    await bot.send_message(user_id, f"📢 ANNONCE :\n\n{announcement_text}")
+                    sent += 1
+                except Exception as e:
+                    print(f"Erreur lors de l'envoi à {user_id} : {e}")
+                    failed += 1
     
     await message.reply(f"✅ Annonce envoyée à {sent} utilisateurs.\n❌ {failed} échecs.")
     await state.clear()
