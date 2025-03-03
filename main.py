@@ -576,6 +576,18 @@ async def telegraph_image_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
+@dp.callback_query(lambda c: c.data == "admin_manage_formats")
+async def admin_manage_formats(callback_query: types.CallbackQuery):
+    # Afficher le menu de gestion des formats
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        types.InlineKeyboardButton(text="Ajouter un format", callback_data="format_add"),
+        types.InlineKeyboardButton(text="Supprimer un format", callback_data="format_remove"),
+        types.InlineKeyboardButton(text="Retour", callback_data="back_to_admin")
+    )
+    await bot.send_message(callback_query.from_user.id, "Gérer les formats de téléchargement :", reply_markup=keyboard)
+    await callback_query.answer()
+
 @dp.callback_query(lambda c: c.data in ["format_add", "format_remove"])
 async def process_format_manage(callback_query: types.CallbackQuery, state: FSMContext):
     action = callback_query.data
@@ -639,6 +651,19 @@ async def manage_formats_handler(message: types.Message, state: FSMContext):
         types.InlineKeyboardButton(text="Retour", callback_data="back_to_admin")
     )
     await message.answer("Gérer les formats de téléchargement :", reply_markup=keyboard)
+
+@dp.callback_query(lambda c: c.data == "admin_manage_links")
+async def admin_manage_links(callback_query: types.CallbackQuery):
+    # Afficher le menu de gestion des liens
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        types.InlineKeyboardButton(text="Ajouter un lien", callback_data="link_add"),
+        types.InlineKeyboardButton(text="Supprimer un lien", callback_data="link_remove"),
+        types.InlineKeyboardButton(text="Liste des liens", callback_data="link_list"),
+        types.InlineKeyboardButton(text="Retour", callback_data="back_to_admin")
+    )
+    await bot.send_message(callback_query.from_user.id, "Gérer les liens importants :", reply_markup=keyboard)
+    await callback_query.answer()
 
 @dp.callback_query(lambda c: c.data in ["link_add", "link_remove", "link_list"])
 async def process_link_manage(callback_query: types.CallbackQuery, state: FSMContext):
