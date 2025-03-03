@@ -824,6 +824,20 @@ async def announcement_handler(message: types.Message, state: FSMContext):
 # Lancement du bot
 # -------------------------------
 async def main():
+    # Initialize global variables
+    global subscribers, banned_users, admin_ids
+    subscribers = set()
+    banned_users = set()
+    admin_ids = set(ADMIN_IDS)
+    
+    # Clean up any temp files from previous runs
+    for f in os.listdir('.'):
+        if f.endswith(".mp4") or f.endswith(".m4a"):
+            try:
+                os.remove(f)
+            except:
+                pass
+    
     logging.basicConfig(level=logging.INFO)
     await dp.start_polling(bot)
 
