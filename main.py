@@ -61,18 +61,26 @@ def download_video(url: str) -> str:
     """
     output_filename = f"{uuid.uuid4()}.mp4"
     ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': output_filename,
         'merge_output_format': 'mp4',
         'noplaylist': True,
-        'quiet': True,
+        'quiet': False,  # Afficher les logs pour debug
+        'no_warnings': False,
+        'ignoreerrors': False,
+        'verbose': True,
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        return output_filename
+        # Vérifier si le fichier existe
+        if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
+            return output_filename
+        else:
+            print(f"Le fichier {output_filename} n'existe pas ou est vide")
+            return None
     except Exception as e:
-        print("Erreur de téléchargement:", e)
+        print(f"Erreur de téléchargement: {e}")
         return None
 
 def upload_image_to_telegraph(file_path: str) -> str:
@@ -134,15 +142,39 @@ async def process_download_video(callback_query: types.CallbackQuery):
     await callback_query.answer()
     await bot.send_message(callback_query.from_user.id, "Envoie-moi le lien YouTube à télécharger.")
 
-@dp.message(lambda message: message.text and message.text.startswith("http"))
+@dp.message(lambda message: message.text and (message.text.startswith("http") or "youtu" in message.text))
 async def handle_video_link(message: types.Message):
-    msg = await message.reply("Téléchargement en cours...")
-    video_path = download_video(message.text)
-    if video_path:
-        await bot.send_video(message.chat.id, video=types.FSInputFile(video_path))
-        os.remove(video_path)
-    else:
-        await message.reply("Erreur lors du téléchargement de la vidéo.")
+    msg = await message.reply("Téléchargement en cours... Cela peut prendre quelques instants.")
+    
+    # Extraire l'URL YouTube
+    url = message.text.strip()
+    
+    try:
+        # Essayer de télécharger la vidéo
+        await message.reply("Récupération des informations de la vidéo...")
+        video_path = download_video(url)
+        
+        if video_path and os.path.exists(video_path):
+            # Vérifier la taille du fichier
+            file_size = os.path.getsize(video_path) / (1024 * 1024)  # Taille en MB
+            
+            if file_size > 49:  # Telegram limite à 50MB
+                await message.reply(f"⚠️ La vidéo est trop grande ({file_size:.1f}MB). Telegram limite les fichiers à 50MB.")
+                os.remove(video_path)
+            else:
+                await message.reply(f"Envoi en cours... Taille: {file_size:.1f}MB")
+                await bot.send_video(
+                    message.chat.id, 
+                    video=types.FSInputFile(video_path),
+                    caption="Voici votre vidéo! 🎬"
+                )
+                await msg.delete()  # Supprimer le message "Téléchargement en cours"
+                os.remove(video_path)
+        else:
+            await message.reply("⚠️ Impossible de télécharger cette vidéo. Vérifiez que l'URL est valide et que la vidéo est disponible.")
+    except Exception as e:
+        await message.reply(f"❌ Erreur: {str(e)[:200]}")
+        print(f"Exception complète: {e}")
 
 @dp.message(lambda message: message.text and message.text.startswith("/admin"))
 async def cmd_admin(message: types.Message):
