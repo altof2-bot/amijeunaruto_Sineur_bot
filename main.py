@@ -178,6 +178,17 @@ def is_admin(user_id: int) -> bool:
 # -------------------------------
 # Handlers du bot
 # -------------------------------
+@dp.message(lambda message: message.text and message.text.startswith("/ping"))
+async def cmd_ping(message: types.Message):
+    """
+    Commande simple pour vérifier si le bot est en ligne.
+    Utile pour tester la disponibilité du bot après déploiement.
+    """
+    response_time = await message.reply("Pong! Le bot est en ligne.")
+    # Calculer le temps de réponse
+    ping_time = (response_time.date - message.date).total_seconds()
+    await response_time.edit_text(f"Pong! Le bot est en ligne.\nTemps de réponse: {ping_time:.2f}s")
+
 @dp.message(lambda message: message.text and message.text.startswith("/start"))
 async def cmd_start(message: types.Message):
     # Ajouter l'utilisateur à la liste des abonnés s'il n'est pas banni
@@ -1024,7 +1035,15 @@ async def main():
             except:
                 pass
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    print("🚀 Bot démarré! Le bot est prêt à recevoir des commandes.")
+    print(f"✅ URL de webhook: https://{os.environ.get('REPL_SLUG')}.{os.environ.get('REPL_OWNER')}.repl.co")
+    
+    # Démarrer le bot
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
