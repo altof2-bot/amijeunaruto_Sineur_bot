@@ -798,6 +798,11 @@ async def announcement_handler(message: types.Message, state: FSMContext):
     
     await message.reply("Envoi de l'annonce en cours...")
     
+    # Assurons-nous que subscribers existe
+    global subscribers
+    if not hasattr(globals(), 'subscribers') or subscribers is None:
+        subscribers = set()
+    
     # Si subscribers est vide, on doit quand même tenter d'envoyer aux admins
     if not subscribers:
         for admin_id in admin_ids:
@@ -808,7 +813,7 @@ async def announcement_handler(message: types.Message, state: FSMContext):
                 print(f"Erreur lors de l'envoi à l'admin {admin_id} : {e}")
                 failed += 1
     else:
-        for user_id in subscribers.copy():
+        for user_id in list(subscribers):  # Utiliser list() au lieu de copy() pour éviter les erreurs
             if user_id not in banned_users:  # Ne pas envoyer aux utilisateurs bannis
                 try:
                     await bot.send_message(user_id, f"📢 ANNONCE :\n\n{announcement_text}")
