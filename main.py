@@ -270,6 +270,37 @@ async def cmd_admin(message: types.Message):
     )
     await message.answer("Panneau Admin :", reply_markup=keyboard)
 
+# Classes pour les états de l'admin
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+
+class Announcement(StatesGroup):
+    waiting_for_text = State()
+
+class BanUser(StatesGroup):
+    waiting_for_ban_id = State()
+
+class UnbanUser(StatesGroup):
+    waiting_for_unban_id = State()
+
+class EditStartMessage(StatesGroup):
+    waiting_for_new_message = State()
+
+class ManageAdmins(StatesGroup):
+    waiting_for_admin_id = State()
+
+class ManageSubChannels(StatesGroup):
+    waiting_for_channel_name = State()
+
+class TelegraphImage(StatesGroup):
+    waiting_for_image = State()
+
+# Variables globales pour les utilisateurs
+subscribers = set()
+banned_users = set()
+admin_ids = set(ADMIN_IDS)
+welcome_message = "Bienvenue sur notre bot de téléchargement de vidéos YouTube !"
+
 @dp.callback_query(lambda c: c.data and c.data.startswith("admin_"))
 async def process_admin_callbacks(callback_query: types.CallbackQuery):
     if not is_admin(callback_query.from_user.id):
@@ -277,191 +308,232 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
         return
 
     data = callback_query.data
+    
     if data == "admin_announce":
         await Announcement.waiting_for_text.set()
         await bot.send_message(callback_query.from_user.id, "Envoyez le texte de l'annonce à diffuser.")
+    
     elif data == "admin_manage_admins":
-            # Demander à l'admin s'il veut ajouter ou supprimer un admin
-            keyboard = types.InlineKeyboardMarkup(row_width=2)
-            keyboard.add(
-                types.InlineKeyboardButton("Ajouter un admin", callback_data="admin_add"),
-                types.InlineKeyboardButton("Supprimer un admin", callback_data="admin_remove")
-            )
-            await bot.send_message(callback_query.from_user.id, "Choisissez une action :", reply_markup=keyboard)
-        elif data == "admin_ban_user":
-            await BanUser.waiting_for_ban_id.set()
-            await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à bannir.")
-        elif data == "admin_unban_user":
-            await UnbanUser.waiting_for_unban_id.set()
-            await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à débannir.")
-        elif data == "admin_stats":
-            stats = (
-                f"Nombre d'utilisateurs: {len(subscribers)}\n"
-                f"Nombre d'admins: {len(admin_ids)}\n"
-                f"Nombre de bannis: {len(banned_users)}"
-            )
-            await bot.send_message(callback_query.from_user.id, stats)
-        elif data == "admin_manage_formats":
-            await bot.send_message(callback_query.from_user.id, "Fonction 'Gérer formats' à implémenter.")
-        elif data == "admin_manage_links":
-            await bot.send_message(callback_query.from_user.id, "Fonction 'Gérer liens' à implémenter.")
-        elif data == "admin_storage":
-            files = os.listdir('.')
-            await bot.send_message(callback_query.from_user.id, f"Fichiers présents: {files}")
-        elif data == "admin_clear_storage":
-            count = 0
-            for f in os.listdir('.'):
-                if f.endswith(".mp4"):
-                    os.remove(f)
-                    count += 1
-            await bot.send_message(callback_query.from_user.id, f"{count} fichiers supprimés.")
-        elif data == "admin_edit_start":
-            await EditStartMessage.waiting_for_new_message.set()
-            await bot.send_message(callback_query.from_user.id, "Envoyez le nouveau message de démarrage.")
-        elif data == "admin_manage_sub":
-            keyboard = types.InlineKeyboardMarkup(row_width=2)
-            keyboard.add(
-                types.InlineKeyboardButton("Ajouter une chaîne", callback_data="sub_add"),
-                types.InlineKeyboardButton("Supprimer une chaîne", callback_data="sub_remove")
-            )
-            await bot.send_message(callback_query.from_user.id, "Choisissez une action :", reply_markup=keyboard)
-        elif data == "admin_manage_telegraph":
-            await TelegraphImage.waiting_for_image.set()
-            await bot.send_message(callback_query.from_user.id, "Envoyez l'image à uploader sur Telegraph.")
-        await bot.answer_callback_query(callback_query.id)
+        # Demander à l'admin s'il veut ajouter ou supprimer un admin
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(
+            types.InlineKeyboardButton(text="Ajouter un admin", callback_data="admin_add"),
+            types.InlineKeyboardButton(text="Supprimer un admin", callback_data="admin_remove")
+        )
+        await bot.send_message(callback_query.from_user.id, "Choisissez une action :", reply_markup=keyboard)
+    
+    elif data == "admin_ban_user":
+        await BanUser.waiting_for_ban_id.set()
+        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à bannir.")
+    
+    elif data == "admin_unban_user":
+        await UnbanUser.waiting_for_unban_id.set()
+        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à débannir.")
+    
+    elif data == "admin_stats":
+        stats = (
+            f"Nombre d'utilisateurs: {len(subscribers)}\n"
+            f"Nombre d'admins: {len(admin_ids)}\n"
+            f"Nombre de bannis: {len(banned_users)}"
+        )
+        await bot.send_message(callback_query.from_user.id, stats)
+    
+    elif data == "admin_manage_formats":
+        await bot.send_message(callback_query.from_user.id, "Fonction 'Gérer formats' à implémenter.")
+    
+    elif data == "admin_manage_links":
+        await bot.send_message(callback_query.from_user.id, "Fonction 'Gérer liens' à implémenter.")
+    
+    elif data == "admin_storage":
+        files = os.listdir('.')
+        await bot.send_message(callback_query.from_user.id, f"Fichiers présents: {files}")
+    
+    elif data == "admin_clear_storage":
+        count = 0
+        for f in os.listdir('.'):
+            if f.endswith(".mp4") or f.endswith(".m4a"):
+                os.remove(f)
+                count += 1
+        await bot.send_message(callback_query.from_user.id, f"{count} fichiers supprimés.")
+    
+    elif data == "admin_edit_start":
+        await EditStartMessage.waiting_for_new_message.set()
+        await bot.send_message(callback_query.from_user.id, "Envoyez le nouveau message de démarrage.")
+    
+    elif data == "admin_manage_sub":
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(
+            types.InlineKeyboardButton(text="Ajouter une chaîne", callback_data="sub_add"),
+            types.InlineKeyboardButton(text="Supprimer une chaîne", callback_data="sub_remove")
+        )
+        await bot.send_message(callback_query.from_user.id, "Choisissez une action :", reply_markup=keyboard)
+    
+    elif data == "admin_manage_telegraph":
+        await TelegraphImage.waiting_for_image.set()
+        await bot.send_message(callback_query.from_user.id, "Envoyez l'image à uploader sur Telegraph.")
+    
+    await callback_query.answer()
 
-    # Gestion de l'ajout/suppression d'admins
-    @dp.callback_query_handler(lambda c: c.data in ["admin_add", "admin_remove"])
-    async def process_admin_manage(callback_query: types.CallbackQuery):
-        action = callback_query.data  # "admin_add" ou "admin_remove"
-        await ManageAdmins.waiting_for_admin_id.set()
-        if action == "admin_add":
-            await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à ajouter comme admin.")
-            await dp.current_state(user=callback_query.from_user.id).update_data(action="add")
-        else:
-            await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à supprimer des admins.")
-            await dp.current_state(user=callback_query.from_user.id).update_data(action="remove")
-        await bot.answer_callback_query(callback_query.id)
+@dp.callback_query(lambda c: c.data in ["admin_add", "admin_remove"])
+async def process_admin_manage(callback_query: types.CallbackQuery, state: FSMContext):
+    action = callback_query.data  # "admin_add" ou "admin_remove"
+    await ManageAdmins.waiting_for_admin_id.set()
+    
+    if action == "admin_add":
+        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à ajouter comme admin.")
+        await state.update_data(action="add")
+    else:
+        await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à supprimer des admins.")
+        await state.update_data(action="remove")
+    
+    await callback_query.answer()
 
-    @dp.message_handler(state=ManageAdmins.waiting_for_admin_id, content_types=types.ContentTypes.TEXT)
-    async def manage_admins_handler(message: types.Message, state: FSMContext):
-        data = await state.get_data()
-        action = data.get("action")
-        try:
-            admin_id = int(message.text)
-            if action == "add":
-                admin_ids.add(admin_id)
-                await message.reply(f"Utilisateur {admin_id} ajouté comme admin.")
-            elif action == "remove":
-                if admin_id in admin_ids:
-                    admin_ids.remove(admin_id)
-                    await message.reply(f"Utilisateur {admin_id} supprimé des admins.")
-                else:
-                    await message.reply(f"Utilisateur {admin_id} n'est pas admin.")
-        except Exception as e:
-            await message.reply("ID invalide.")
-        await state.finish()
-
-    # Bannir un utilisateur
-    @dp.message_handler(state=BanUser.waiting_for_ban_id, content_types=types.ContentTypes.TEXT)
-    async def ban_user_handler(message: types.Message, state: FSMContext):
-        try:
-            user_id = int(message.text)
-            banned_users.add(user_id)
-            if user_id in subscribers:
-                subscribers.remove(user_id)
-            await message.reply(f"Utilisateur {user_id} banni.")
-        except Exception as e:
-            await message.reply("ID invalide.")
-        await state.finish()
-
-    # Débannir un utilisateur
-    @dp.message_handler(state=UnbanUser.waiting_for_unban_id, content_types=types.ContentTypes.TEXT)
-    async def unban_user_handler(message: types.Message, state: FSMContext):
-        try:
-            user_id = int(message.text)
-            if user_id in banned_users:
-                banned_users.remove(user_id)
-                await message.reply(f"Utilisateur {user_id} débanni.")
-            else:
-                await message.reply("Cet utilisateur n'est pas banni.")
-        except Exception as e:
-            await message.reply("ID invalide.")
-        await state.finish()
-
-    # Modifier le message de démarrage
-    @dp.message_handler(state=EditStartMessage.waiting_for_new_message, content_types=types.ContentTypes.TEXT)
-    async def edit_start_message_handler(message: types.Message, state: FSMContext):
-        global welcome_message
-        welcome_message = message.text
-        await message.reply("Message de démarrage mis à jour.")
-        await state.finish()
-
-    # Gestion de l'abonnement forcé
-    @dp.callback_query_handler(lambda c: c.data in ["sub_add", "sub_remove"])
-    async def process_sub_manage(callback_query: types.CallbackQuery):
-        action = callback_query.data  # "sub_add" ou "sub_remove"
-        await ManageSubChannels.waiting_for_channel_name.set()
-        if action == "sub_add":
-            await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (ex: @channel) à ajouter.")
-            await dp.current_state(user=callback_query.from_user.id).update_data(action="add")
-        else:
-            await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (ex: @channel) à supprimer.")
-            await dp.current_state(user=callback_query.from_user.id).update_data(action="remove")
-        await bot.answer_callback_query(callback_query.id)
-
-    @dp.message_handler(state=ManageSubChannels.waiting_for_channel_name, content_types=types.ContentTypes.TEXT)
-    async def manage_sub_channel_handler(message: types.Message, state: FSMContext):
-        data = await state.get_data()
-        action = data.get("action")
-        channel_name = message.text.strip()
+@dp.message(lambda message: ManageAdmins.waiting_for_admin_id, content_types=types.ContentType.TEXT)
+async def manage_admins_handler(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    action = data.get("action")
+    
+    try:
+        admin_id = int(message.text)
+        
         if action == "add":
-            if channel_name not in FORCE_SUB_CHANNELS:
-                FORCE_SUB_CHANNELS.append(channel_name)
-                await message.reply(f"Chaîne {channel_name} ajoutée à l'abonnement forcé.")
+            admin_ids.add(admin_id)
+            await message.reply(f"Utilisateur {admin_id} ajouté comme admin.")
+        elif action == "remove":
+            if admin_id in admin_ids:
+                admin_ids.remove(admin_id)
+                await message.reply(f"Utilisateur {admin_id} supprimé des admins.")
             else:
-                await message.reply("Cette chaîne est déjà dans la liste.")
-        else:
-            if channel_name in FORCE_SUB_CHANNELS:
-                FORCE_SUB_CHANNELS.remove(channel_name)
-                await message.reply(f"Chaîne {channel_name} supprimée de l'abonnement forcé.")
-            else:
-                await message.reply("Cette chaîne n'est pas dans la liste.")
-        await state.finish()
+                await message.reply(f"Utilisateur {admin_id} n'est pas admin.")
+    except ValueError:
+        await message.reply("ID invalide. Veuillez entrer un nombre entier.")
+    except Exception as e:
+        await message.reply(f"Erreur: {e}")
+    
+    await state.clear()
 
-    # Upload d'image sur Telegraph
-    @dp.message_handler(state=TelegraphImage.waiting_for_image, content_types=types.ContentTypes.PHOTO)
-    async def telegraph_image_handler(message: types.Message, state: FSMContext):
-        photo = message.photo[-1]
+@dp.message(lambda message: BanUser.waiting_for_ban_id, content_types=types.ContentType.TEXT)
+async def ban_user_handler(message: types.Message, state: FSMContext):
+    try:
+        user_id = int(message.text)
+        banned_users.add(user_id)
+        
+        if user_id in subscribers:
+            subscribers.remove(user_id)
+        
+        await message.reply(f"Utilisateur {user_id} banni.")
+    except ValueError:
+        await message.reply("ID invalide. Veuillez entrer un nombre entier.")
+    except Exception as e:
+        await message.reply(f"Erreur: {e}")
+    
+    await state.clear()
+
+@dp.message(lambda message: UnbanUser.waiting_for_unban_id, content_types=types.ContentType.TEXT)
+async def unban_user_handler(message: types.Message, state: FSMContext):
+    try:
+        user_id = int(message.text)
+        
+        if user_id in banned_users:
+            banned_users.remove(user_id)
+            await message.reply(f"Utilisateur {user_id} débanni.")
+        else:
+            await message.reply("Cet utilisateur n'est pas banni.")
+    except ValueError:
+        await message.reply("ID invalide. Veuillez entrer un nombre entier.")
+    except Exception as e:
+        await message.reply(f"Erreur: {e}")
+    
+    await state.clear()
+
+@dp.message(lambda message: EditStartMessage.waiting_for_new_message, content_types=types.ContentType.TEXT)
+async def edit_start_message_handler(message: types.Message, state: FSMContext):
+    global welcome_message
+    welcome_message = message.text
+    await message.reply("Message de démarrage mis à jour.")
+    await state.clear()
+
+@dp.callback_query(lambda c: c.data in ["sub_add", "sub_remove"])
+async def process_sub_manage(callback_query: types.CallbackQuery, state: FSMContext):
+    action = callback_query.data  # "sub_add" ou "sub_remove"
+    await ManageSubChannels.waiting_for_channel_name.set()
+    
+    if action == "sub_add":
+        await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (sans @) à ajouter.")
+        await state.update_data(action="add")
+    else:
+        await bot.send_message(callback_query.from_user.id, "Envoyez le nom de la chaîne (sans @) à supprimer.")
+        await state.update_data(action="remove")
+    
+    await callback_query.answer()
+
+@dp.message(lambda message: ManageSubChannels.waiting_for_channel_name, content_types=types.ContentType.TEXT)
+async def manage_sub_channel_handler(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    action = data.get("action")
+    channel_name = message.text.strip()
+    
+    # Enlever le @ si l'utilisateur l'a inclus
+    if channel_name.startswith('@'):
+        channel_name = channel_name[1:]
+    
+    if action == "add":
+        if channel_name not in FORCE_SUB_CHANNELS:
+            FORCE_SUB_CHANNELS.append(channel_name)
+            await message.reply(f"Chaîne {channel_name} ajoutée à l'abonnement forcé.")
+        else:
+            await message.reply("Cette chaîne est déjà dans la liste.")
+    else:
+        if channel_name in FORCE_SUB_CHANNELS:
+            FORCE_SUB_CHANNELS.remove(channel_name)
+            await message.reply(f"Chaîne {channel_name} supprimée de l'abonnement forcé.")
+        else:
+            await message.reply("Cette chaîne n'est pas dans la liste.")
+    
+    await state.clear()
+
+@dp.message(lambda message: TelegraphImage.waiting_for_image, content_types=types.ContentType.PHOTO)
+async def telegraph_image_handler(message: types.Message, state: FSMContext):
+    photo = message.photo[-1]  # Prendre la plus grande taille disponible
+    
+    try:
         file_info = await bot.get_file(photo.file_id)
-        file_path = file_info.file_path
-        file = await bot.download_file(file_path)
+        downloaded_file = await bot.download_file(file_info.file_path)
+        
         temp_filename = f"{uuid.uuid4()}.jpg"
         with open(temp_filename, "wb") as f:
-            f.write(file.getvalue())
+            f.write(downloaded_file.read())
+        
         url = upload_image_to_telegraph(temp_filename)
         os.remove(temp_filename)
+        
         if url:
             await message.reply(f"Image uploadée sur Telegraph : {url}")
         else:
             await message.reply("Erreur lors de l'upload sur Telegraph.")
-        await state.finish()
+    except Exception as e:
+        await message.reply(f"Erreur : {e}")
+    
+    await state.clear()
 
-    # Diffusion d'annonce à tous les abonnés
-    @dp.message_handler(state=Announcement.waiting_for_text, content_types=types.ContentTypes.TEXT)
-    async def announcement_handler(message: types.Message, state: FSMContext):
-        announcement_text = message.text
-        failed = 0
-        for user_id in subscribers.copy():
-            try:
-                await bot.send_message(user_id, f"📢 Annonce :\n\n{announcement_text}")
-            except Exception as e:
-                print(f"Erreur lors de l'envoi à {user_id} : {e}")
-                failed += 1
-        await message.reply(f"Annonce envoyée à {len(subscribers) - failed} utilisateurs. ({failed} échecs)")
-        await state.finish()
-
-    # ------------------------
+@dp.message(lambda message: Announcement.waiting_for_text, content_types=types.ContentType.TEXT)
+async def announcement_handler(message: types.Message, state: FSMContext):
+    announcement_text = message.text
+    sent = 0
+    failed = 0
+    
+    await message.reply("Envoi de l'annonce en cours...")
+    
+    for user_id in subscribers.copy():
+        try:
+            await bot.send_message(user_id, f"📢 ANNONCE :\n\n{announcement_text}")
+            sent += 1
+        except Exception as e:
+            print(f"Erreur lors de l'envoi à {user_id} : {e}")
+            failed += 1
+    
+    await message.reply(f"✅ Annonce envoyée à {sent} utilisateurs.\n❌ {failed} échecs.")
+    await state.clear()
 
 # -------------------------------
 # Lancement du bot
