@@ -14,7 +14,7 @@ import asyncio
 BOT_TOKEN = "7771993655:AAGfHswoXZXsZK3tnQg6-irxrWcjIYbjVwM"  # Remplace par ton token BotFather
 ADMIN_IDS = [5116530698]  # Remplace par tes IDs admin
 FORCE_SUB_CHANNELS = ["sineur_x_bot"]  # Remplace par le(s) nom(s) de ta(tes) chaîne(s)
-WELCOME_IMAGE_URL = "https://graph.org/file/a832e964b6e04f82c1c75-7a8ca2206c069a333a.jpg/welcome.jpg"  # URL de ton image de bienvenue
+WELCOME_IMAGE_URL = "https://graph.org/file/a832e964b6e04f82c1c75-7a8ca2206c069a333a.jpg"  # URL de ton image de bienvenue
 
 # -------------------------------
 # Initialisation du bot
@@ -32,11 +32,26 @@ async def check_subscription(user_id: int) -> bool:
     """
     for channel in FORCE_SUB_CHANNELS:
         try:
-            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
-            if member.status == 'left':
+            # Obtenir d'abord l'ID de la chaîne à partir du nom d'utilisateur
+            chat = await bot.get_chat(f"@{channel}")
+            member = await bot.get_chat_member(chat_id=chat.id, user_id=user_id)
+            if member.status in ['left', 'kicked', 'banned']:
+                # Créer un clavier avec un bouton pour rejoindre la chaîne
+                keyboard = types.InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [types.InlineKeyboardButton(text="Rejoindre la chaîne", url=f"https://t.me/{channel}")]
+                    ]
+                )
+                await bot.send_message(
+                    user_id, 
+                    f"Vous devez vous abonner à @{channel} pour utiliser ce bot.",
+                    reply_markup=keyboard
+                )
                 return False
         except Exception as e:
             print("Erreur de vérification d'abonnement:", e)
+            # Ne pas échouer silencieusement, indiquer l'erreur
+            await bot.send_message(user_id, f"Erreur lors de la vérification d'abonnement: {e}")
             return False
     return True
 
@@ -105,7 +120,12 @@ async def cmd_start(message: types.Message):
     await bot.send_photo(
         chat_id=message.chat.id,
         photo=WELCOME_IMAGE_URL,
-        caption="Bienvenue sur le bot ! Choisissez une option :",
+        caption=("Bienvenue sur notre bot de téléchargement de vidéos YouTube ! 📱\n\n"
+                "Ce bot vous permet de télécharger facilement des vidéos depuis YouTube.\n\n"
+                "✅ Téléchargement rapide\n"
+                "✅ Haute qualité\n"
+                "✅ Simple à utiliser\n\n"
+                "Choisissez une option ci-dessous pour commencer :"),
         reply_markup=keyboard
     )
 
