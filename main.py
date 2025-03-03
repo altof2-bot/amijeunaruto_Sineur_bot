@@ -59,28 +59,68 @@ def download_video(url: str) -> str:
     """
     Télécharge une vidéo YouTube et renvoie le chemin du fichier téléchargé.
     """
+    # Nettoyage de l'URL (retrait des paramètres si/t qui peuvent poser problème)
+    clean_url = url.split("?")[0] if "?" in url else url
+    print(f"URL nettoyée: {clean_url}")
+    
     output_filename = f"{uuid.uuid4()}.mp4"
     ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        # Essayer différents formats en priorité décroissante
+        'format': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best',
         'outtmpl': output_filename,
         'merge_output_format': 'mp4',
         'noplaylist': True,
-        'quiet': False,  # Afficher les logs pour debug
+        'quiet': False,
         'no_warnings': False,
-        'ignoreerrors': False,
+        'ignoreerrors': True,  # Ignorer les erreurs et continuer
         'verbose': True,
+        # Ajouter des cookies pour les vidéos avec restrictions d'âge
+        'cookiefile': None,
+        # Contourner les géo-restrictions
+        'geo_bypass': True,
+        # Temps d'expiration des requêtes pour éviter les blocages
+        'socket_timeout': 30,
     }
+    
     try:
+        print(f"Tentative de téléchargement depuis: {clean_url}")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        # Vérifier si le fichier existe
-        if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
-            return output_filename
-        else:
-            print(f"Le fichier {output_filename} n'existe pas ou est vide")
-            return None
+            # Extraire d'abord les informations pour vérifier si la vidéo est accessible
+            info = ydl.extract_info(clean_url, download=False)
+            if info:
+                print(f"Vidéo trouvée: {info.get('title', 'Sans titre')}")
+                # Télécharger la vidéo
+                ydl.download([clean_url])
+                
+                # Vérifier si le fichier existe
+                if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
+                    print(f"Téléchargement réussi: {output_filename}")
+                    return output_filename
+                else:
+                    print(f"Le fichier {output_filename} n'existe pas ou est vide après téléchargement")
+            else:
+                print("Informations de la vidéo non disponibles")
+        
+        # Si on arrive ici, essayer avec une URL alternative (format court)
+        if "youtu.be" in url or "youtube.com" in url:
+            video_id = None
+            if "youtu.be/" in url:
+                video_id = url.split("youtu.be/")[1].split("?")[0].split("&")[0]
+            elif "watch?v=" in url:
+                video_id = url.split("watch?v=")[1].split("&")[0]
+            
+            if video_id:
+                alt_url = f"https://www.youtube.com/watch?v={video_id}"
+                print(f"Tentative avec URL alternative: {alt_url}")
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([alt_url])
+                    if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
+                        print(f"Téléchargement réussi avec URL alternative: {output_filename}")
+                        return output_filename
+        
+        return None
     except Exception as e:
-        print(f"Erreur de téléchargement: {e}")
+        print(f"Erreur de téléchargement détaillée: {e}")
         return None
 
 def upload_image_to_telegraph(file_path: str) -> str:
