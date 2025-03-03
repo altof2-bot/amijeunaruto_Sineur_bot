@@ -519,17 +519,22 @@ async def unban_user_handler(message: types.Message, state: FSMContext):
 
 
 # Commandes admin traditionnelles
-@dp.message(lambda message: message.text and message.text.startswith("/broadcast"))
+@dp.message(lambda message: message.text and (message.text.startswith("/broadcast") or message.text.startswith("/diffuse")))
 async def cmd_broadcast(message: types.Message, state: FSMContext):
     if not is_admin(message.from_user.id):
         await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
         return
     
     # Extraire le texte de l'annonce après la commande
-    announcement_text = message.text.replace("/broadcast", "", 1).strip()
+    if message.text.startswith("/broadcast"):
+        announcement_text = message.text.replace("/broadcast", "", 1).strip()
+        cmd_name = "/broadcast"
+    else:
+        announcement_text = message.text.replace("/diffuse", "", 1).strip()
+        cmd_name = "/diffuse"
     
     if not announcement_text:
-        await message.reply("Usage: /broadcast [votre message]")
+        await message.reply(f"Usage: {cmd_name} [votre message]")
         return
     
     # Procéder à l'envoi
