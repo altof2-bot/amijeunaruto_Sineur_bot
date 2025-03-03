@@ -388,7 +388,7 @@ async def process_admin_manage(callback_query: types.CallbackQuery, state: FSMCo
     
     await callback_query.answer()
 
-@dp.message(lambda message: ManageAdmins.waiting_for_admin_id, content_types=types.ContentType.TEXT)
+@dp.message(lambda message: ManageAdmins.waiting_for_admin_id and message.content_type == types.ContentType.TEXT)
 async def manage_admins_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     action = data.get("action")
@@ -412,7 +412,7 @@ async def manage_admins_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
-@dp.message(lambda message: BanUser.waiting_for_ban_id, content_types=types.ContentType.TEXT)
+@dp.message(lambda message: BanUser.waiting_for_ban_id and message.content_type == types.ContentType.TEXT)
 async def ban_user_handler(message: types.Message, state: FSMContext):
     try:
         user_id = int(message.text)
@@ -429,7 +429,7 @@ async def ban_user_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
-@dp.message(lambda message: UnbanUser.waiting_for_unban_id, content_types=types.ContentType.TEXT)
+@dp.message(lambda message: UnbanUser.waiting_for_unban_id and message.content_type == types.ContentType.TEXT)
 async def unban_user_handler(message: types.Message, state: FSMContext):
     try:
         user_id = int(message.text)
@@ -446,7 +446,7 @@ async def unban_user_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
-@dp.message(lambda message: EditStartMessage.waiting_for_new_message, content_types=types.ContentType.TEXT)
+@dp.message(lambda message: EditStartMessage.waiting_for_new_message and message.content_type == types.ContentType.TEXT)
 async def edit_start_message_handler(message: types.Message, state: FSMContext):
     global welcome_message
     welcome_message = message.text
@@ -467,7 +467,7 @@ async def process_sub_manage(callback_query: types.CallbackQuery, state: FSMCont
     
     await callback_query.answer()
 
-@dp.message(lambda message: ManageSubChannels.waiting_for_channel_name, content_types=types.ContentType.TEXT)
+@dp.message(lambda message: ManageSubChannels.waiting_for_channel_name and message.content_type == types.ContentType.TEXT)
 async def manage_sub_channel_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     action = data.get("action")
@@ -492,7 +492,7 @@ async def manage_sub_channel_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
-@dp.message(lambda message: TelegraphImage.waiting_for_image, content_types=types.ContentType.PHOTO)
+@dp.message(lambda message: TelegraphImage.waiting_for_image and message.content_type == types.ContentType.PHOTO)
 async def telegraph_image_handler(message: types.Message, state: FSMContext):
     photo = message.photo[-1]  # Prendre la plus grande taille disponible
     
@@ -516,7 +516,7 @@ async def telegraph_image_handler(message: types.Message, state: FSMContext):
     
     await state.clear()
 
-@dp.message(lambda message: Announcement.waiting_for_text, content_types=types.ContentType.TEXT)
+@dp.message(lambda message: Announcement.waiting_for_text and message.content_type == types.ContentType.TEXT)
 async def announcement_handler(message: types.Message, state: FSMContext):
     announcement_text = message.text
     sent = 0
