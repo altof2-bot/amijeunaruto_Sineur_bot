@@ -277,7 +277,7 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
         return
 
     data = callback_query.data
-        if data == "admin_announce":
+    if data == "admin_announce":
             await Announcement.waiting_for_text.set()
             await bot.send_message(callback_query.from_user.id, "Envoyez le texte de l'annonce à diffuser.")
         elif data == "admin_manage_admins":
