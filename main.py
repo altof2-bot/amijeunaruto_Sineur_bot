@@ -351,7 +351,7 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
     data = callback_query.data
     
     if data == "admin_announce":
-        await Announcement.waiting_for_text.set()
+        await state.set_state(Announcement.waiting_for_text)
         await bot.send_message(callback_query.from_user.id, "Envoyez le texte de l'annonce à diffuser.")
     
     elif data == "admin_manage_admins":
@@ -364,11 +364,11 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
         await bot.send_message(callback_query.from_user.id, "Choisissez une action :", reply_markup=keyboard)
     
     elif data == "admin_ban_user":
-        await BanUser.waiting_for_ban_id.set()
+        await state.set_state(BanUser.waiting_for_ban_id)
         await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à bannir.")
     
     elif data == "admin_unban_user":
-        await UnbanUser.waiting_for_unban_id.set()
+        await state.set_state(UnbanUser.waiting_for_unban_id)
         await bot.send_message(callback_query.from_user.id, "Envoyez l'ID de l'utilisateur à débannir.")
     
     elif data == "admin_stats":
@@ -411,7 +411,7 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
         await bot.send_message(callback_query.from_user.id, f"{count} fichiers supprimés.")
     
     elif data == "admin_edit_start":
-        await EditStartMessage.waiting_for_new_message.set()
+        await state.set_state(EditStartMessage.waiting_for_new_message)
         await bot.send_message(callback_query.from_user.id, "Envoyez le nouveau message de démarrage.")
     
     elif data == "admin_manage_sub":
@@ -423,7 +423,7 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
         await bot.send_message(callback_query.from_user.id, "Choisissez une action :", reply_markup=keyboard)
     
     elif data == "admin_manage_telegraph":
-        await TelegraphImage.waiting_for_image.set()
+        await state.set_state(TelegraphImage.waiting_for_image)
         await bot.send_message(callback_query.from_user.id, "Envoyez l'image à uploader sur Telegraph.")
     
     await callback_query.answer()
@@ -431,7 +431,7 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data in ["admin_add", "admin_remove"])
 async def process_admin_manage(callback_query: types.CallbackQuery, state: FSMContext):
     action = callback_query.data  # "admin_add" ou "admin_remove"
-    await ManageAdmins.waiting_for_admin_id.set()
+    await state.set_state(ManageAdmins.waiting_for_admin_id)
     
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
@@ -513,7 +513,7 @@ async def edit_start_message_handler(message: types.Message, state: FSMContext):
 @dp.callback_query(lambda c: c.data in ["sub_add", "sub_remove"])
 async def process_sub_manage(callback_query: types.CallbackQuery, state: FSMContext):
     action = callback_query.data  # "sub_add" ou "sub_remove"
-    await ManageSubChannels.waiting_for_channel_name.set()
+    await state.set_state(ManageSubChannels.waiting_for_channel_name)
     
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
@@ -591,7 +591,7 @@ async def admin_manage_formats(callback_query: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data in ["format_add", "format_remove"])
 async def process_format_manage(callback_query: types.CallbackQuery, state: FSMContext):
     action = callback_query.data
-    await ManageFormats.waiting_for_format.set()
+    await state.set_state(ManageFormats.waiting_for_format)
     
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
@@ -680,7 +680,10 @@ async def process_link_manage(callback_query: types.CallbackQuery, state: FSMCon
         keyboard.add(types.InlineKeyboardButton(text="Retour", callback_data="admin_manage_links"))
         await bot.send_message(callback_query.from_user.id, "Que souhaitez-vous faire ?", reply_markup=keyboard)
     else:
-        await ManageLinks.waiting_for_name.set() if action == "link_add" else await ManageLinks.waiting_for_link.set()
+        if action == "link_add":
+            await state.set_state(ManageLinks.waiting_for_name)
+        else:
+            await state.set_state(ManageLinks.waiting_for_link)
         
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
@@ -712,7 +715,7 @@ async def manage_links_name_handler(message: types.Message, state: FSMContext):
         return
     
     await state.update_data(link_name=link_name)
-    await ManageLinks.waiting_for_link.set()
+    await state.set_state(ManageLinks.waiting_for_link)
     
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     keyboard.add(types.InlineKeyboardButton(text="Annuler", callback_data="cancel_admin_action"))
