@@ -86,7 +86,7 @@ def is_admin(user_id: int) -> bool:
 # -------------------------------
 # Handlers du bot
 # -------------------------------
-@dp.message(commands=["start"])
+@dp.message(lambda message: message.text and message.text.startswith("/start"))
 async def cmd_start(message: types.Message):
     # Vérifie l'abonnement forcé
     if not await check_subscription(message.from_user.id):
@@ -124,7 +124,7 @@ async def handle_video_link(message: types.Message):
     else:
         await message.reply("Erreur lors du téléchargement de la vidéo.")
 
-@dp.message(commands=["admin"])
+@dp.message(lambda message: message.text and message.text.startswith("/admin"))
 async def cmd_admin(message: types.Message):
     if not is_admin(message.from_user.id):
         await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
