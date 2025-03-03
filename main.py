@@ -1,34 +1,38 @@
+
 import logging
 import os
 import uuid
-from aiogram import Bot, Dispatcher, executor, types
+from aiogram import Bot, Dispatcher, types
+from aiogram.fsm.storage.memory import MemoryStorage
 import yt_dlp
 from telegraph import Telegraph
+import asyncio
 
 # -------------------------------
 # Configuration
 # -------------------------------
-BOT_TOKEN = "7771993655:AAGfHswoXZXsZK3tnQg6-irxrWcjIYbjVwM"         # Remplace par ton token BotFather
-ADMIN_IDS = [5116530698]                   # Remplace par tes IDs admin
-FORCE_SUB_CHANNELS = ["sineur_x_bot"]     # Remplace par le(s) nom(s) de ta(tes) chaîne(s)
+BOT_TOKEN = "7771993655:AAGfHswoXZXsZK3tnQg6-irxrWcjIYbjVwM"  # Remplace par ton token BotFather
+ADMIN_IDS = [5116530698]  # Remplace par tes IDs admin
+FORCE_SUB_CHANNELS = ["sineur_x_bot"]  # Remplace par le(s) nom(s) de ta(tes) chaîne(s)
 WELCOME_IMAGE_URL = "https://graph.org/file/a832e964b6e04f82c1c75-7a8ca2206c069a333a.jpg/welcome.jpg"  # URL de ton image de bienvenue
 
 # -------------------------------
 # Initialisation du bot
 # -------------------------------
-bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
-dp = Dispatcher(bot)
+bot = Bot(token=BOT_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
 
 # -------------------------------
 # Fonctions utilitaires
 # -------------------------------
-async def check_subscription(message: types.Message) -> bool:
+async def check_subscription(user_id: int) -> bool:
     """
     Vérifie si l'utilisateur est abonné aux chaînes obligatoires.
     """
     for channel in FORCE_SUB_CHANNELS:
         try:
-            member = await bot.get_chat_member(chat_id=channel, user_id=message.from_user.id)
+            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
             if member.status == 'left':
                 return False
         except Exception as e:
@@ -82,67 +86,72 @@ def is_admin(user_id: int) -> bool:
 # -------------------------------
 # Handlers du bot
 # -------------------------------
-@dp.message_handler(commands=["start"])
+@dp.message(commands=["start"])
 async def cmd_start(message: types.Message):
     # Vérifie l'abonnement forcé
-    if not await check_subscription(message):
+    if not await check_subscription(message.from_user.id):
         await message.reply("Pour utiliser le bot, vous devez être abonné à notre chaîne.")
         return
     # Création du clavier inline
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
-        types.InlineKeyboardButton("Télécharger une vidéo", callback_data="download_video"),
-        types.InlineKeyboardButton("Panneau Admin", callback_data="admin_panel")
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(text="Télécharger une vidéo", callback_data="download_video"),
+                types.InlineKeyboardButton(text="Panneau Admin", callback_data="admin_panel")
+            ]
+        ]
     )
     # Envoi de l'image de bienvenue et du message
     await bot.send_photo(
         chat_id=message.chat.id,
         photo=WELCOME_IMAGE_URL,
-        caption="Bienvenue sur le bot ! Choisissez une option :",
+        caption="Bienvenue sur le bot ! Choisissez une option :",
         reply_markup=keyboard
     )
 
-@dp.callback_query_handler(lambda c: c.data == "download_video")
+@dp.callback_query(lambda c: c.data == "download_video")
 async def process_download_video(callback_query: types.CallbackQuery):
-    await bot.answer_callback_query(callback_query.id)
+    await callback_query.answer()
     await bot.send_message(callback_query.from_user.id, "Envoie-moi le lien YouTube à télécharger.")
 
-@dp.message_handler(lambda message: message.text and message.text.startswith("http"))
+@dp.message(lambda message: message.text and message.text.startswith("http"))
 async def handle_video_link(message: types.Message):
     msg = await message.reply("Téléchargement en cours...")
     video_path = download_video(message.text)
     if video_path:
-        await bot.send_video(message.chat.id, open(video_path, "rb"))
+        await bot.send_video(message.chat.id, video=types.FSInputFile(video_path))
         os.remove(video_path)
     else:
         await message.reply("Erreur lors du téléchargement de la vidéo.")
 
-@dp.message_handler(commands=["admin"])
+@dp.message(commands=["admin"])
 async def cmd_admin(message: types.Message):
     if not is_admin(message.from_user.id):
         await message.reply("Vous n'êtes pas autorisé à utiliser cette commande.")
         return
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
-        types.InlineKeyboardButton("Envoyer une annonce", callback_data="admin_announce"),
-        types.InlineKeyboardButton("Gérer les admins", callback_data="admin_manage_admins"),
-        types.InlineKeyboardButton("Bannir utilisateur", callback_data="admin_ban_user"),
-        types.InlineKeyboardButton("Débannir utilisateur", callback_data="admin_unban_user"),
-        types.InlineKeyboardButton("Voir statistiques", callback_data="admin_stats"),
-        types.InlineKeyboardButton("Gérer formats", callback_data="admin_manage_formats"),
-        types.InlineKeyboardButton("Gérer liens", callback_data="admin_manage_links"),
-        types.InlineKeyboardButton("Voir stockage", callback_data="admin_storage"),
-        types.InlineKeyboardButton("Vider stockage", callback_data="admin_clear_storage"),
-        types.InlineKeyboardButton("Modifier message démarrage", callback_data="admin_edit_start"),
-        types.InlineKeyboardButton("Gérer abonnement forcé", callback_data="admin_manage_sub"),
-        types.InlineKeyboardButton("Gérer images Telegraph", callback_data="admin_manage_telegraph")
+    
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text="Envoyer une annonce", callback_data="admin_announce")],
+            [types.InlineKeyboardButton(text="Gérer les admins", callback_data="admin_manage_admins")],
+            [types.InlineKeyboardButton(text="Bannir utilisateur", callback_data="admin_ban_user")],
+            [types.InlineKeyboardButton(text="Débannir utilisateur", callback_data="admin_unban_user")],
+            [types.InlineKeyboardButton(text="Voir statistiques", callback_data="admin_stats")],
+            [types.InlineKeyboardButton(text="Gérer formats", callback_data="admin_manage_formats")],
+            [types.InlineKeyboardButton(text="Gérer liens", callback_data="admin_manage_links")],
+            [types.InlineKeyboardButton(text="Voir stockage", callback_data="admin_storage")],
+            [types.InlineKeyboardButton(text="Vider stockage", callback_data="admin_clear_storage")],
+            [types.InlineKeyboardButton(text="Modifier message démarrage", callback_data="admin_edit_start")],
+            [types.InlineKeyboardButton(text="Gérer abonnement forcé", callback_data="admin_manage_sub")],
+            [types.InlineKeyboardButton(text="Gérer images Telegraph", callback_data="admin_manage_telegraph")]
+        ]
     )
     await message.answer("Panneau Admin :", reply_markup=keyboard)
 
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith("admin_"))
+@dp.callback_query(lambda c: c.data and c.data.startswith("admin_"))
 async def process_admin_callbacks(callback_query: types.CallbackQuery):
     if not is_admin(callback_query.from_user.id):
-        await bot.answer_callback_query(callback_query.id, text="Accès refusé.")
+        await callback_query.answer(text="Accès refusé.")
         return
 
     data = callback_query.data
@@ -173,12 +182,16 @@ async def process_admin_callbacks(callback_query: types.CallbackQuery):
         response_text = "Fonction 'Gérer images Telegraph' à implémenter."
     else:
         response_text = "Action inconnue."
+    
     await bot.send_message(callback_query.from_user.id, response_text)
-    await bot.answer_callback_query(callback_query.id)
+    await callback_query.answer()
 
 # -------------------------------
 # Lancement du bot
 # -------------------------------
-if __name__ == "__main__":
+async def main():
     logging.basicConfig(level=logging.INFO)
-    executor.start_polling(dp, skip_updates=True)
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
