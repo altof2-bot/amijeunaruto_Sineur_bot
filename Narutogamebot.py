@@ -22,7 +22,7 @@ def load_data():
 def save_data(data):
     with open(DATA_FILE, "w") as file:
         json.dump(data, file, indent=4)
-CREATOR_ID = 1687928453  # ID du créateur
+CREATOR_ID = 1687928453 5116530698 # ID du créateur
 players = {}
 # Variables des joueurs et autres données
 players = {"referrals", "money", "exp"}
@@ -168,6 +168,7 @@ async def handle_callback(update: Update, context: CallbackContext) -> None:
             "- Nom : 𝐍𝐄𝐓𝐅𝐋𝐀𝐒𝐇 𝐃𝐈𝐄𝐔 𝐌𝐀𝐔𝐑𝐈𝐂𝐄\n"
             "- Contact : @mauridieu\n"
             "- ID : 1687928453\n\n"
+            "HEBERGER SUR @REQUETE_ANIME_30sbot
             "Merci d'utiliser ce bot ! 🚀"
         )
     elif query.data == "creator_info":
