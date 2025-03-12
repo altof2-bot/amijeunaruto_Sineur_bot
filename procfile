@@ -1,1 +1,1 @@
-web: python narutogamebot.py
+worker: python Narutogamebot.py
