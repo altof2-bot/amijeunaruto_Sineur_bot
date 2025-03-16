@@ -1,1 +1,1 @@
-worker: python Narutogamebot.py
+web: gunicorn Narutogamebot:app
