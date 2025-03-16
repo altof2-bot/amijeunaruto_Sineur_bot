@@ -1,1 +1,11 @@
-# Utiliser une image Python minimale FROM python:3.10-slim # Définir le répertoire de travail WORKDIR /app # Copier les fichiers nécessaires COPY requirements.txt . COPY bot.py . # Installer les dépendances RUN pip install --no-cache-dir -r requirements.txt # Exposer le port (facultatif, utile si ton bot a une API web) EXPOSE 8080 # Exécuter le bot CMD ["python", "Narutogamebot.py"] 
+FROM python:3.8-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["gunicorn", "Narutogamebot:app", "--bind", "0.0.0.0:5000"]
