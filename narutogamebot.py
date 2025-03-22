@@ -141,12 +141,12 @@ async def start(update: Update, context: CallbackContext) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Envoyer la photo avec le message de bienvenue
-    photo_message = await update.message.reply_photo(
-        photo=open("https://graph.org/file/d8b62cc81e674cd0f6139-e598b58f88bfa8f1a8.jpg", "rb"),  # Remplace par le chemin de ta photo
-        caption=message,
-        reply_markup=reply_markup
-    )
+  # Envoyer la photo avec le message de bienvenue
+photo_message = await update.message.reply_photo(
+    photo="https://graph.org/file/d8b62cc81e674cd0f6139-e598b58f88bfa8f1a8.jpg",  # URL directe de l'image
+    caption=message,
+    reply_markup=reply_markup
+)
 
     # Stocker l'identifiant du message pour les futures modifications
     context.chat_data["welcome_message_id"] = photo_message.message_id
