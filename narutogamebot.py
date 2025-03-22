@@ -168,8 +168,7 @@ async def handle_callback(update: Update, context: CallbackContext) -> None:
             "- Nom : 𝐍𝐄𝐓𝐅𝐋𝐀𝐒𝐇 𝐃𝐈𝐄𝐔 𝐌𝐀𝐔𝐑𝐈𝐂𝐄\n"
             "- Contact : @mauridieu\n"
             "- ID : 1687928453\n\n"
-            "HEBERGER SUR @REQUETE_ANIME_30sbot
-            "Merci d'utiliser ce bot ! 🚀"
+            "- HEBERGER SUR @REQUETE_ANIME_30sbot Merci d'utiliser ce bot ! 🚀"
         )
     elif query.data == "creator_info":
         caption = "🕵 **CRÉATEUR** 🕵\n\nDécouvrez le créateur ici : Clique ici(https://t.me/GameFrench)"
