@@ -143,7 +143,7 @@ async def start(update: Update, context: CallbackContext) -> None:
 
     # Envoyer la photo avec le message de bienvenue
     photo_message = await update.message.reply_photo(
-        photo=open("file-XJ6bJgcmMRMLREgdZbTx9m.webp", "rb"),  # Remplace par le chemin de ta photo
+        photo=open("https://graph.org/file/d8b62cc81e674cd0f6139-e598b58f88bfa8f1a8.jpg", "rb"),  # Remplace par le chemin de ta photo
         caption=message,
         reply_markup=reply_markup
     )
