@@ -148,8 +148,8 @@ photo_message = await update.message.reply_photo(
     reply_markup=reply_markup
 )
 
-    # Stocker l'identifiant du message pour les futures modifications
-    context.chat_data["welcome_message_id"] = photo_message.message_id
+# Assigner l'ID du message de bienvenue
+context.chat_data["welcome_message_id"] = photo_message.message_id
 
 
 # Fonction pour gérer les interactions des boutons
