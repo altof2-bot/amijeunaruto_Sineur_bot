@@ -1283,7 +1283,7 @@ async def auto_save(update: Update, context: CallbackContext) -> None:
     save_data(players)  # Sauvegarder les données des joueurs à chaque message
 
 # Créer l'application
-application = Application.builder().token("BOT_TOKEN").build()
+application = Application.builder().token("7593371180:AAHDOrLB5GebjIxFGiI0JZNv84-jc5kSVzA").build()
 
 # Charger les données des joueurs au démarrage
 players = load_data()
