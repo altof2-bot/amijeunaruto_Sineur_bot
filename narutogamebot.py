@@ -1325,6 +1325,9 @@ print("EN COURS DE DÉMARRAGE, PATIENTEZ...")
 # Lancer le bot
 application.run_polling()
 
+def main():
+    # Votre code principal ici
+    pass
 if __name__ == '__main__':
     main()
             
