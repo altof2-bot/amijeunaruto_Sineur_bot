@@ -141,17 +141,16 @@ async def start(update: Update, context: CallbackContext) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-await send_welcome_photo(update, context)
-  # Envoyer la photo avec le message de bienvenue
-photo_message = await update.message.reply_photo(
-    photo="https://graph.org/file/d8b62cc81e674cd0f6139-e598b58f88bfa8f1a8.jpg",  # URL directe de l'image
-    caption=message,
-    reply_markup=reply_markup
-)
+async def send_welcome_photo(update, context, message, reply_markup):
+    # Envoyer la photo avec le message de bienvenue
+    photo_message = await update.message.reply_photo(
+        photo="https://graph.org/file/d8b62cc81e674cd0f6139-e598b58f88bfa8f1a8.jpg",  # URL directe de l'image
+        caption=message,
+        reply_markup=reply_markup
+    )
 
-# Assigner l'ID du message de bienvenue
-context.chat_data["welcome_message_id"] = photo_message.message_id
-
+    # Assigner l'ID du message de bienvenue
+    context.chat_data["welcome_message_id"] = photo_message.message_id
 
 # Fonction pour gérer les interactions des boutons
 async def handle_callback(update: Update, context: CallbackContext) -> None:
