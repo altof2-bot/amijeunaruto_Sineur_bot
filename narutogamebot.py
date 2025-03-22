@@ -22,7 +22,7 @@ def load_data():
 def save_data(data):
     with open(DATA_FILE, "w") as file:
         json.dump(data, file, indent=4)
-CREATOR_ID = 1687928453 5116530698 # ID du créateur
+CREATOR_ID = 1687928453  # ID du créateur
 players = {}
 # Variables des joueurs et autres données
 players = {"referrals", "money", "exp"}
