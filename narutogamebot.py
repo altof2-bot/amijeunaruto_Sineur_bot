@@ -1319,15 +1319,24 @@ application.add_handler(CommandHandler("dieu", dieu))
 application.add_handler(CommandHandler("none", none))
 application.add_handler(CommandHandler("restart", restart))
 
-# Afficher un message de démarrage
-print("EN COURS DE DÉMARRAGE, PATIENTEZ...")
+# Domaine de ton app Koyeb
+APP_URL = "https://only-oneida.amijeunaruto-sineur-bot.koyeb.app"
 
-# Lancer le bot
-application.run_polling()
+async def start(update, context):
+    await update.message.reply_text("Bot en ligne via webhook !")
 
 def main():
-    # Votre code principal ici
-    pass
+    print("EN COURS DE DÉMARRAGE, PATIENTEZ...")
+
+    application = Application.builder().token(TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 8000)),
+        webhook_url=f"{APP_URL}/{TOKEN}"  # URL complète de webhook
+    )
+
 if __name__ == '__main__':
     main()
-            
