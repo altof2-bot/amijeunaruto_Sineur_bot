@@ -4,6 +4,8 @@ import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, Application, CommandHandler, ContextTypes, CallbackQueryHandler, CallbackContext, MessageHandler, filters
 from datetime import datetime
+# Remplace par ton vrai token
+TOKEN =7593371180:AAHDOrLB5GebjIxFGiI0JZNv84-jc5kSVzA
 # Nom du fichier pour sauvegarder les données
 DATA_FILE = "data.json"
 
@@ -22,7 +24,7 @@ def load_data():
 def save_data(data):
     with open(DATA_FILE, "w") as file:
         json.dump(data, file, indent=4)
-CREATOR_ID = 1687928453  # ID du créateur
+CREATOR_ID = 1687928453 5116530698  # ID du créateur
 players = {}
 # Variables des joueurs et autres données
 players = {"referrals", "money", "exp"}
