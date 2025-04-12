@@ -5,7 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, Application, CommandHandler, ContextTypes, CallbackQueryHandler, CallbackContext, MessageHandler, filters
 from datetime import datetime
 # Remplace par ton vrai token
-TOKEN = '7593371180:AAHDOrLB5GebjIxFGiI0JZNv84-jc5kSVzA'
+TOKEN = '7593371180:AAElZWI48Uy2sK33lLIsJIS-FxbHz78wKzc'
 # Nom du fichier pour sauvegarder les données
 DATA_FILE = "data.json"
 
